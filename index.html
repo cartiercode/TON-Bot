@@ -3,17 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome Mini App</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script> <!-- Telegram Web App SDK -->
+    <title>JANE - Journey to New Economies</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script> <!-- Telegram SDK -->
+    <script src="https://unpkg.com/@tonconnect/sdk@latest/dist/tonconnect-sdk.min.js"></script> <!-- TON Connect -->
+    <script src="https://cdn.jsdelivr.net/npm/@dynamic-labs/sdk@1.5.0/dist/sdk.umd.js"></script> <!-- Dynamic SDK -->
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
-        button { padding: 10px 20px; font-size: 16px; }
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background: #f0f0f0; color: #333; }
+        h1 { color: #00aaff; }
+        button { padding: 12px 24px; font-size: 16px; margin: 10px; background: #00aaff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0088cc; }
+        p { font-size: 18px; }
     </style>
 </head>
 <body>
-    <h1>Welcome to My TON App!</h1>
-    <p>Click below to connect your TON wallet and get started.</p>
-    <button id="connectButton">Connect Wallet</button>
+    <h1>Welcome to JANE</h1>
+    <p>Your guide to new economies. Let’s make crypto easy!</p>
+    <button id="buyButton">Buy Crypto with Fiat</button>
+    <button id="tradeButton">Trade on TON</button>
     <p id="status"></p>
     <script src="script.js"></script>
 </body>
