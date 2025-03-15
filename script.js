@@ -6,7 +6,7 @@ const status = document.getElementById('status');
 
 // TON Connect setup
 const tonConnect = new TonConnect.TonConnect({
-    manifestUrl: 'https://raw.githubusercontent.com/cartiercode/TON-Bot/blob/main/tonconnect-manifest.json'
+    manifestUrl: 'https://raw.githubusercontent.com/cartiercode/TON-Bot/main/tonconnect-manifest.json'
 });
 
 // Dynamic.xyz setup
