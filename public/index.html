@@ -10,7 +10,7 @@
     <style>
         body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background: #f0f0f0; color: #333; }
         h1 { color: #00aaff; }
-        button { padding: 12px 24px; font-size: 16px; margin: 10px; background: #00aaff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button, select, input { padding: 12px; font-size: 16px; margin: 10px; background: #00aaff; color: white; border: none; border-radius: 5px; }
         button:hover { background: #0088cc; }
         p { font-size: 18px; }
     </style>
@@ -19,7 +19,9 @@
     <h1>Welcome to JANE</h1>
     <p>Your guide to new economies. Let’s make crypto easy!</p>
     <button id="buyButton">Buy Crypto with Fiat</button>
-    <button id="tradeButton">Trade on TON</button>
+    <select id="tradePair"></select>
+    <input id="tradeAmount" type="number" placeholder="Amount (TON)" min="0" step="0.1">
+    <button id="tradeButton">Trade on STON.fi</button>
     <p id="status"></p>
     <script src="script.js"></script>
 </body>
