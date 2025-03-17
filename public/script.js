@@ -48,7 +48,7 @@ fetch('/api/config')
             }
         });
 
-        // Fetch STON.fi pools to populate trading pairs
+        // Fetch STON.fi pools for trading pairs
         async function fetchStonFiPools() {
             try {
                 const response = await fetch('https://api.ston.fi/v1/pools');
@@ -60,13 +60,13 @@ fetch('/api/config')
             }
         }
 
-        // Populate trade pair dropdown (assumes <select id="tradePair"> in HTML)
+        // Populate trade pair dropdown
         fetchStonFiPools().then(pools => {
             const select = document.getElementById('tradePair');
             pools.forEach(pool => {
                 const option = document.createElement('option');
-                option.value = `${pool.token0_address},${pool.token1_address}`; // Use addresses for swap
-                option.textContent = `${pool.token0_symbol}/${pool.token1_symbol}`; // Display symbols
+                option.value = `${pool.token0_address},${pool.token1_address},${pool.pool_address}`;
+                option.textContent = `${pool.token0_symbol}/${pool.token1_symbol}`;
                 select.appendChild(option);
             });
         });
@@ -78,31 +78,38 @@ fetch('/api/config')
                 await tonConnect.connect({ universalLink: 'https://app.tonkeeper.com/ton-connect' });
             }
             if (tonConnect.connected) {
-                const [token0, token1] = document.getElementById('tradePair').value.split(',');
-                const amount = document.getElementById('tradeAmount').value || "1"; // Default to 1 TON
+                const [tokenIn, tokenOut, poolAddress] = document.getElementById('tradePair').value.split(',');
+                const amount = document.getElementById('tradeAmount').value || "1"; // Default 1 TON
                 const amountInNano = Math.floor(amount * 1e9); // Convert to nanoTON
 
                 status.textContent = "Simulating swap on STON.fi...";
                 try {
                     // Simulate swap to get expected output
-                    const simResponse = await fetch(`https://api.ston.fi/v1/swap/simulate?token_in=${token0}&token_out=${token1}&amount_in=${amountInNano}`);
+                    const simResponse = await fetch(`https://api.ston.fi/v1/swap/simulate?token_in=${tokenIn}&token_out=${tokenOut}&amount_in=${amountInNano}`);
                     const simData = await simResponse.json();
-                    const amountOut = simData.amount_out;
+                    const amountOutMin = Math.floor(simData.amount_out * 0.95); // 5% slippage tolerance
 
-                    // Prepare swap transaction (placeholder values)
+                    // Construct swap transaction
                     const tx = {
                         validUntil: Math.floor(Date.now() / 1000) + 60, // 1 minute
                         messages: [
                             {
-                                address: "EQD-ajvWV8TGrXCvLfqfO3-pqsbmgvVB89T5oJ-SsH9vG-Av", // STON.fi Router (see below)
+                                address: "EQD-ajvWV8TGrXCvLfqfO3-pqsbmgvVB89T5oJ-SsH9vG-Av", // STON.fi Router V1
                                 amount: amountInNano.toString(),
-                                payload: "te6ccgEBAQEAAgAAAA==" // Simplified payload, replace with actual swap payload
+                                payload: Buffer.from(
+                                    "te6ccgEBAQEAAgAAAA==" + // Base64-encoded swap opcode (placeholder)
+                                    "6664de2a" + // Swap opcode in hex
+                                    tokenIn.slice(2) + // Remove "EQ" prefix
+                                    tokenOut.slice(2) + // Remove "EQ" prefix
+                                    amountOutMin.toString(16).padStart(16, '0'), // Hex amount out min
+                                    "hex"
+                                ).toString('base64')
                             }
                         ]
                     };
 
                     const result = await tonConnect.sendTransaction(tx);
-                    status.textContent = `Swap successful! Got ${amountOut / 1e9} ${simData.token_out_symbol}. Tx: ${result.boc}`;
+                    status.textContent = `Swap successful! Got ${simData.amount_out / 1e9} ${simData.token_out_symbol}. Tx: ${result.boc}`;
                 } catch (error) {
                     status.textContent = "Swap failed: " + error.message;
                 }
