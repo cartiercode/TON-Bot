@@ -3,13 +3,11 @@ tg.ready();
 tg.expand();
 
 const status = document.getElementById('status');
-
-// TON Connect setup
 const tonConnect = new TonConnect.TonConnect({
     manifestUrl: 'https://raw.githubusercontent.com/cartiercode/TON-Bot/main/tonconnect-manifest.json'
 });
 
-// Fetch Dynamic API key from server
+// Fetch Dynamic API key
 fetch('/api/config')
     .then(response => response.json())
     .then(config => {
@@ -18,67 +16,34 @@ fetch('/api/config')
             apiKey: config.dynamicApiKey,
             walletConnectors: ['ton'],
             onAuthSuccess: (auth) => {
-                status.textContent = "Connected via Dynamic! Ready to buy or trade.";
+                status.textContent = "JANE is now your TON wallet!";
+                checkWallet();
             },
-            onError: (error) => {
-                status.textContent = "Dynamic error: " + error.message;
-            }
+            onError: (error) => status.textContent = "Error: " + error.message
         });
 
         // Buy button
         document.getElementById('buyButton').addEventListener('click', async () => {
-            status.textContent = "Opening fiat-to-crypto purchase...";
-            try {
-                if (!tonConnect.connected) {
-                    await tonConnect.connect({ universalLink: 'https://app.tonkeeper.com/ton-connect' });
-                }
-                if (tonConnect.connected) {
-                    status.textContent = "TON wallet connected. Launching Dynamic widget...";
-                    dynamic.openWidget('fiat-to-crypto', {
-                        destinationChain: 'ton',
-                        destinationToken: 'TON',
-                        walletAddress: tonConnect.account.address
-                    });
-                } else {
-                    status.textContent = "Please connect your TON wallet first.";
-                }
-            } catch (error) {
-                status.textContent = "Error: " + error.message;
+            status.textContent = "Opening fiat-to-TON purchase...";
+            if (!tonConnect.connected) await tonConnect.connect({ universalLink: 'https://app.tonkeeper.com/ton-connect' });
+            if (tonConnect.connected) {
+                dynamic.openWidget('fiat-to-crypto', {
+                    destinationChain: 'ton',
+                    destinationToken: 'TON',
+                    walletAddress: tonConnect.account.address
+                });
+                status.textContent = "Purchase TON with fiat!";
+            } else {
+                status.textContent = "Please connect your wallet.";
             }
         });
-    })
-    .catch(error => {
-        status.textContent = "Failed to load config: " + error.message;
-    });
 
-// Trade button (TON-to-JETTON simulation)
-document.getElementById('tradeButton').addEventListener('click', async () => {
-    if (!tonConnect.connected) {
-        status.textContent = "Please connect your TON wallet first.";
-        await tonConnect.connect({ universalLink: 'https://app.tonkeeper.com/ton-connect' });
-    }
-    if (tonConnect.connected) {
-        status.textContent = "Initiating trade: 1 TON to JETTON...";
-        try {
-            const tx = {
-                validUntil: Math.floor(Date.now() / 1000) + 60,
-                messages: [
-                    {
-                        address: "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c",
-                        amount: "1000000000",
-                        payload: "te6ccgEBAQEAAgAAAA=="
-                    }
-                ]
-            };
-            const result = await tonConnect.sendTransaction(tx);
-            status.textContent = "Trade successful! Tx: " + result.boc;
-        } catch (error) {
-            status.textContent = "Trade failed: " + error.message;
+        // Check wallet status
+        function checkWallet() {
+            if (tonConnect.connected) {
+                status.textContent = `Wallet connected: ${tonConnect.account.address}`;
+            }
         }
-    }
-});
-
-// Check TON wallet connection on load
-if (tonConnect.connected) {
-    status.textContent = "Wallet connected: " + tonConnect.account.address;
-}
+        checkWallet();
+    })
+    .catch(error => status.textContent = "Config error: " + error.message);
