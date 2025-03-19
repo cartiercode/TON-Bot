@@ -5,46 +5,55 @@ tg.ready();
 tg.expand();
 
 const status = document.getElementById('status') || document.createElement('p');
+const walletAddressDisplay = document.getElementById('walletAddress') || document.createElement('p');
 if (!document.getElementById('status')) document.body.appendChild(status);
+if (!document.getElementById('walletAddress')) document.body.appendChild(walletAddressDisplay);
 
-let attempts = 0;
-const maxAttempts = 50;
+let tonweb;
+let wallet;
 
-function waitForTonConnect(callback) {
-    if (typeof TonConnect !== 'undefined') {
-        console.log("TON Connect SDK loaded:", typeof TonConnect);
+function waitForTonWeb(callback) {
+    if (typeof TonWeb !== 'undefined') {
+        console.log("TonWeb loaded:", typeof TonWeb);
+        tonweb = new TonWeb();
         callback();
-    } else if (attempts < maxAttempts) {
-        attempts++;
-        console.log("Waiting for TON Connect... Attempt:", attempts);
-        setTimeout(() => waitForTonConnect(callback), 100);
     } else {
-        status.textContent = "Error: TON Connect not loaded after 5 seconds. Please reload.";
+        setTimeout(() => waitForTonWeb(callback), 100);
     }
 }
 
-waitForTonConnect(() => {
-    const tonConnect = new TonConnect.TonConnect({
-        manifestUrl: 'https://raw.githubusercontent.com/cartiercode/TON-Bot/main/tonconnect-manifest.json'
-    });
+waitForTonWeb(() => {
+    const connectButton = document.getElementById('connectButton');
+    if (connectButton) {
+        connectButton.addEventListener('click', async () => {
+            status.textContent = "Generating wallet with your Telegram ID...";
+            try {
+                // Use tg.initData as a seed (simplified, not cryptographically secure)
+                const userId = tg.initDataUnsafe?.user?.id || "test-user";
+                const seed = TonWeb.utils.sha256(userId); // Hash Telegram ID for seed
+                const keyPair = tonweb.utils.keyPairFromSeed(seed);
+                wallet = tonweb.wallet.create({ publicKey: keyPair.publicKey });
+
+                const address = await wallet.getAddress();
+                const addressString = address.toString(true, true, true); // User-friendly format
+                status.textContent = "Wallet created!";
+                walletAddressDisplay.textContent = `Your address: ${addressString}`;
+                localStorage.setItem('janeWalletSecretKey', TonWeb.utils.bytesToHex(keyPair.secretKey));
+            } catch (error) {
+                status.textContent = "Error creating wallet: " + error.message;
+            }
+        });
+    }
 
     const buyButton = document.getElementById('buyButton');
     if (buyButton) {
-        buyButton.addEventListener('click', async () => {
-            status.textContent = "Connecting wallet for fiat purchase...";
-            try {
-                if (!tonConnect.connected) {
-                    await tonConnect.connect({ universalLink: 'https://app.tonkeeper.com/ton-connect' });
-                }
-                if (tonConnect.connected) {
-                    status.textContent = "Wallet connected. Opening Tonkeeper to buy TON...";
-                    tg.openLink('https://app.tonkeeper.com/ton-connect?buy');
-                } else {
-                    status.textContent = "Please connect your TON wallet first.";
-                }
-            } catch (error) {
-                status.textContent = "Error: " + error.message;
+        buyButton.addEventListener('click', () => {
+            if (!wallet) {
+                status.textContent = "Please connect your wallet first.";
+                return;
             }
+            status.textContent = "Fiat-to-crypto coming soon...";
+            // Placeholder for MoonPay or Stars integration
         });
     }
 
@@ -74,52 +83,16 @@ waitForTonConnect(() => {
     const tradeButton = document.getElementById('tradeButton');
     if (tradeButton) {
         tradeButton.addEventListener('click', async () => {
-            if (!tonConnect.connected) {
-                status.textContent = "Please connect your TON wallet first.";
-                await tonConnect.connect({ universalLink: 'https://app.tonkeeper.com/ton-connect' });
+            if (!wallet) {
+                status.textContent = "Please connect your wallet first.";
+                return;
             }
-            if (tonConnect.connected) {
-                const [tokenIn, tokenOut, poolAddress] = document.getElementById('tradePair').value.split(',');
-                const amount = document.getElementById('tradeAmount').value || "1";
-                const amountInNano = Math.floor(amount * 1e9);
+            const [tokenIn, tokenOut, poolAddress] = document.getElementById('tradePair').value.split(',');
+            const amount = document.getElementById('tradeAmount').value || "1";
+            const amountInNano = Math.floor(amount * 1e9);
 
-                status.textContent = "Simulating swap on STON.fi...";
-                try {
-                    const simResponse = await fetch(`https://api.ston.fi/v1/swap/simulate?token_in=${tokenIn}&token_out=${tokenOut}&amount_in=${amountInNano}`);
-                    const simData = await simResponse.json();
-                    const amountOutMin = Math.floor(simData.amount_out * 0.95);
-
-                    const tx = {
-                        validUntil: Math.floor(Date.now() / 1000) + 60,
-                        messages: [
-                            {
-                                address: "EQD-ajvWV8TGrXCvLfqfO3-pqsbmgvVB89T5oJ-SsH9vG-Av",
-                                amount: amountInNano.toString(),
-                                payload: Buffer.from(
-                                    "te6ccgEBAQEAAgAAAA==" +
-                                    "6664de2a" +
-                                    tokenIn.slice(2) +
-                                    tokenOut.slice(2) +
-                                    amountOutMin.toString(16).padStart(16, '0'),
-                                    "hex"
-                                ).toString('base64')
-                            }
-                        ]
-                    };
-
-                    const result = await tonConnect.sendTransaction(tx);
-                    status.textContent = `Swap successful! Got ${simData.amount_out / 1e9} ${simData.token_out_symbol}. Tx: ${result.boc}`;
-                } catch (error) {
-                    status.textContent = "Swap failed: " + error.message;
-                }
-            }
+            status.textContent = "Preparing STON.fi swap... (Note: Requires TON funding)";
+            // Swap logic needs funded wallet and server-side signing for now
         });
     }
-
-    function checkWallet() {
-        if (tonConnect.connected) {
-            status.textContent = "Wallet connected: " + tonConnect.account.address;
-        }
-    }
-    checkWallet();
 });
