@@ -10,5 +10,5 @@ JANE: Journey to Access New Economies—a TON mini app wallet. Stake $JANE, buy 
 
 ## Features
 - TON staking ($JANE)
-- Fiat-to-$TON/$USDT (Dynamic wallet)
+- Fiat-to-Crypto (Tonconnect wallet)
 - Off-app $BTC bridge (SunSwap, NonKYC)
