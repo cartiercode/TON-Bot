@@ -10,10 +10,9 @@ if (!document.getElementById('status')) document.body.appendChild(status);
 if (!document.getElementById('walletAddress')) document.body.appendChild(walletAddressDisplay);
 
 let tonweb;
-let wallet;
 
 function waitForTonWeb(callback) {
-    if (typeof TonWeb !== 'undefined') {
+    if (typeof TonWeb !== 'undefined' && typeof CryptoJS !== 'undefined') {
         console.log("TonWeb loaded:", typeof TonWeb);
         tonweb = new TonWeb();
         callback();
@@ -24,38 +23,57 @@ function waitForTonWeb(callback) {
 
 waitForTonWeb(() => {
     const connectButton = document.getElementById('connectButton');
-    if (connectButton) {
-        connectButton.addEventListener('click', async () => {
-            status.textContent = "Generating wallet with your Telegram ID...";
-            try {
-                // Use tg.initData as a seed (simplified, not cryptographically secure)
-                const userId = tg.initDataUnsafe?.user?.id || "test-user";
-                const seed = TonWeb.utils.sha256(userId); // Hash Telegram ID for seed
-                const keyPair = tonweb.utils.keyPairFromSeed(seed);
-                wallet = tonweb.wallet.create({ publicKey: keyPair.publicKey });
+    const passwordInput = document.getElementById('password');
 
+    connectButton.addEventListener('click', async () => {
+        const password = passwordInput.value;
+        if (!password) {
+            status.textContent = "Please enter a password.";
+            return;
+        }
+
+        const user = tg.initDataUnsafe?.user;
+        if (!user || !user.id || !user.phone_number) {
+            status.textContent = "Please log in with a Telegram account that has a registered phone number.";
+            return;
+        }
+        const userId = user.id;
+        const phoneHash = CryptoJS.SHA256(user.phone_number).toString();
+
+        status.textContent = "Checking wallet...";
+        try {
+            const response = await fetch(`/api/wallet/${userId}`);
+            if (response.ok) {
+                const { encryptedKey } = await response.json();
+                const decryptedKey = CryptoJS.AES.decrypt(encryptedKey, password + phoneHash).toString(CryptoJS.enc.Utf8);
+                const keyPair = JSON.parse(decryptedKey);
+                const wallet = tonweb.wallet.create({ publicKey: TonWeb.utils.hexToBytes(keyPair.publicKey), version: 'v4R2' });
                 const address = await wallet.getAddress();
-                const addressString = address.toString(true, true, true); // User-friendly format
-                status.textContent = "Wallet created!";
-                walletAddressDisplay.textContent = `Your address: ${addressString}`;
-                localStorage.setItem('janeWalletSecretKey', TonWeb.utils.bytesToHex(keyPair.secretKey));
-            } catch (error) {
-                status.textContent = "Error creating wallet: " + error.message;
+                status.textContent = "Wallet loaded!";
+                walletAddressDisplay.textContent = `Your MoonWallet: ${address.toString(true, true, true)}`;
+            } else if (response.status === 402) {
+                status.textContent = "Pay 50 Stars to create your wallet...";
+                tg.openInvoice('https://t.me/$JANEbot?start=wallet_payment_' + userId);
+            } else {
+                status.textContent = "Creating new wallet... Pay 50 Stars.";
+                tg.openInvoice('https://t.me/$JANEbot?start=wallet_payment_' + userId);
             }
-        });
-    }
+        } catch (error) {
+            status.textContent = "Error: " + error.message;
+        }
+    });
 
     const buyButton = document.getElementById('buyButton');
-    if (buyButton) {
-        buyButton.addEventListener('click', () => {
-            if (!wallet) {
-                status.textContent = "Please connect your wallet first.";
-                return;
-            }
-            status.textContent = "Fiat-to-crypto coming soon...";
-            // Placeholder for MoonPay or Stars integration
-        });
-    }
+    buyButton.addEventListener('click', async () => {
+        const address = walletAddressDisplay.textContent.split(': ')[1];
+        if (!address) {
+            status.textContent = "Please connect your wallet first.";
+            return;
+        }
+        status.textContent = "Opening MoonPay to buy TON...";
+        const moonPayUrl = `https://buy.moonpay.com?apiKey=[YOUR_MOONPAY_API_KEY]¤cyCode=TON&walletAddress=${address}`;
+        tg.openLink(moonPayUrl);
+    });
 
     async function fetchStonFiPools() {
         try {
@@ -81,18 +99,13 @@ waitForTonWeb(() => {
     });
 
     const tradeButton = document.getElementById('tradeButton');
-    if (tradeButton) {
-        tradeButton.addEventListener('click', async () => {
-            if (!wallet) {
-                status.textContent = "Please connect your wallet first.";
-                return;
-            }
-            const [tokenIn, tokenOut, poolAddress] = document.getElementById('tradePair').value.split(',');
-            const amount = document.getElementById('tradeAmount').value || "1";
-            const amountInNano = Math.floor(amount * 1e9);
-
-            status.textContent = "Preparing STON.fi swap... (Note: Requires TON funding)";
-            // Swap logic needs funded wallet and server-side signing for now
-        });
-    }
+    tradeButton.addEventListener('click', async () => {
+        const address = walletAddressDisplay.textContent.split(': ')[1];
+        if (!address) {
+            status.textContent = "Please connect your wallet first.";
+            return;
+        }
+        status.textContent = "STON.fi trading requires funding first.";
+        // Add server-side signing logic later
+    });
 });
