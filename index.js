@@ -3,6 +3,7 @@ const TelegramBot = require('node-telegram-bot-api');
 const path = require('path');
 const Arweave = require('arweave');
 const TonWeb = require('tonweb');
+const CryptoJS = require('crypto-js');
 
 const app = express();
 const arweave = Arweave.init({ host: 'arweave.net', port: 443, protocol: 'https' });
@@ -81,6 +82,7 @@ app.post('/api/wallet', async (req, res) => {
         secretKey: preseededWalletKey
       });
 
+      // Store the already encrypted key from client (PIN-protected)
       const transaction = await arweave.createTransaction({ data: encryptedKey }, arweaveWallet);
       transaction.addTag('App-Name', 'JANE');
       transaction.addTag('User-ID', userId);
