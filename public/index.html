@@ -2,46 +2,53 @@
 <html>
 <head>
   <title>JANE Wallet</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
 </head>
 <body>
   <h1>JANE Wallet</h1>
+  <input type="text" id="pin" placeholder="Enter 6-digit PIN" maxlength="6" inputmode="numeric">
   <button onclick="createWallet()">Create Wallet (50 Stars)</button>
   <div id="walletStatus"></div>
-  <button onclick="setPin()" style="display:none;" id="setPinButton">Set PIN for Security</button>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <button onclick="setPin()" style="display:none;" id="setPinButton">Change PIN</button>
   <script>
     async function createWallet() {
+      const pin = document.getElementById('pin').value;
+      if (!pin || pin.length !== 6 || isNaN(pin)) {
+        alert('Please enter a valid 6-digit PIN');
+        return;
+      }
       const user = window.Telegram.WebApp.initDataUnsafe.user;
       const userId = user.id;
-      // No password needed - use a placeholder encryptedKey or skip it
-      const encryptedKey = btoa(userId + Date.now()); // Temp key, adjust as needed
+      // Encrypt a temp key with PIN (real key generated server-side)
+      const tempKey = userId + Date.now();
+      const encryptedKey = CryptoJS.AES.encrypt(tempKey, pin).toString();
 
-      // Send payment request to bot
       window.Telegram.WebApp.sendData(JSON.stringify({
         action: 'pay',
         userId: userId,
         encryptedKey: encryptedKey
       }));
 
-      // Update UI
       document.getElementById('walletStatus').innerText = 'Processing payment...';
     }
 
-    async function setPin() {
-      const pin = prompt('Enter a 4-digit PIN for wallet security:');
-      if (pin && pin.length === 4 && !isNaN(pin)) {
-        // Placeholder - save PIN later (e.g., localStorage or server-side)
-        alert('PIN set successfully! (Feature coming soon)');
+    function setPin() {
+      const newPin = prompt('Enter a new 6-digit PIN:');
+      if (newPin && newPin.length === 6 && !isNaN(newPin)) {
+        alert('PIN changed successfully! (Feature coming soon)');
+        // TODO: Update encrypted key on server with new PIN
       } else {
-        alert('Please enter a valid 4-digit PIN');
+        alert('Please enter a valid 6-digit PIN');
       }
     }
 
-    // Show Set PIN button after wallet creation (simplified for now)
     window.Telegram.WebApp.onEvent('invoiceClosed', (data) => {
       if (data.status === 'paid') {
-        document.getElementById('walletStatus').innerText = 'Wallet created!';
+        document.getElementById('walletStatus').innerText = 'Wallet created! Keep your PIN safe.';
         document.getElementById('setPinButton').style.display = 'block';
+      } else if (data.status === 'cancelled') {
+        document.getElementById('walletStatus').innerText = 'Payment cancelled.';
       }
     });
   </script>
