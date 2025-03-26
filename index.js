@@ -107,6 +107,15 @@ bot.onText(/\/start/, (msg) => {
   });
 });
 
+bot.on('message', (msg) => {
+  if (msg.web_app_data && JSON.parse(msg.web_app_data.data).action === 'pay') {
+    const { userId, encryptedKey } = JSON.parse(msg.web_app_data.data);
+    bot.sendInvoice(msg.chat.id, "Wallet Creation", "Create a TON wallet", "wallet_payload", "", "XTR", [
+      { label: "Wallet Fee", amount: 50 }
+    ]);
+  }
+});
+
 bot.on('pre_checkout_query', (query) => {
   const userId = query.from.id.toString();
   if (query.total_amount === 50) {
