@@ -18,7 +18,7 @@ const preseededWallet = tonweb.wallet.create({ publicKey: TonWeb.utils.hexToByte
 
 const botToken = process.env.TELEGRAM_BOT_TOKEN;
 const bot = new TelegramBot(botToken);
-bot.setWebHook(`https://jane-bot.onrender.com/bot${botToken}`);
+bot.setWebHook(`https://jane-bot.onrender.com/bot${botToken}`, { baseUrl: 'https://api.telegram.org/bot' + botToken + '/test' });
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -82,7 +82,6 @@ app.post('/api/wallet', async (req, res) => {
         secretKey: preseededWalletKey
       });
 
-      // Store the already encrypted key from client (PIN-protected)
       const transaction = await arweave.createTransaction({ data: encryptedKey }, arweaveWallet);
       transaction.addTag('App-Name', 'JANE');
       transaction.addTag('User-ID', userId);
