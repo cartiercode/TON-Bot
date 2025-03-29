@@ -18,7 +18,7 @@ const preseededWallet = tonweb.wallet.create({ publicKey: TonWeb.utils.hexToByte
 
 const botToken = process.env.TELEGRAM_BOT_TOKEN;
 const bot = new TelegramBot(botToken);
-bot.setWebHook(`https://jane-bot.onrender.com/bot${botToken}`, { baseUrl: 'https://api.telegram.org/bot' + botToken + '/test' });
+bot.setWebHook(`https://jane-bot.onrender.com/bot${botToken}`); // Back to main API
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
