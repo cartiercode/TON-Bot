@@ -10,59 +10,33 @@
   <input type="text" id="pin" placeholder="Enter 6-digit PIN" maxlength="6" inputmode="numeric">
   <button onclick="createWallet()">Create Wallet (50 Stars)</button>
   <div id="walletStatus"></div>
-  <button onclick="setPin()" style="display:none;" id="setPinButton">Change PIN</button>
   <script>
     async function createWallet() {
+      console.log("Button clicked!");
       const pin = document.getElementById('pin').value;
-      console.log('PIN entered:', pin);
       if (!pin || pin.length !== 6 || isNaN(pin)) {
         alert('Please enter a valid 6-digit PIN');
-        console.log('PIN validation failed');
+        console.log("PIN validation failed");
         return;
       }
-
+      console.log("PIN entered:", pin);
       const user = window.Telegram.WebApp.initDataUnsafe.user;
       if (!user || !user.id) {
         alert('Error: Telegram user data not found');
-        console.log('User data missing:', user);
+        console.log("User data missing:", user);
         return;
       }
       const userId = user.id;
       const encryptedKey = CryptoJS.AES.encrypt(userId + Date.now(), pin).toString();
-      console.log('Sending data:', { userId, encryptedKey });
-
-      try {
-        window.Telegram.WebApp.sendData(JSON.stringify({
-          action: 'pay',
-          userId: userId,
-          encryptedKey: encryptedKey
-        }));
-        console.log('Data sent to bot');
-        document.getElementById('walletStatus').innerText = 'Processing payment...';
-      } catch (error) {
-        alert('Error sending payment request: ' + error.message);
-        console.log('Send error:', error);
-      }
+      console.log("Sending data:", { userId, encryptedKey });
+      window.Telegram.WebApp.sendData(JSON.stringify({
+        action: 'pay',
+        userId: userId,
+        encryptedKey: encryptedKey
+      }));
+      console.log("Data sent to bot");
+      document.getElementById('walletStatus').innerText = 'Processing payment...';
     }
-
-    function setPin() {
-      const newPin = prompt('Enter a new 6-digit PIN:');
-      if (newPin && newPin.length === 6 && !isNaN(newPin)) {
-        alert('PIN changed successfully! (Feature coming soon)');
-      } else {
-        alert('Please enter a valid 6-digit PIN');
-      }
-    }
-
-    window.Telegram.WebApp.onEvent('invoiceClosed', (data) => {
-      console.log('Invoice closed:', data);
-      if (data.status === 'paid') {
-        document.getElementById('walletStatus').innerText = 'Wallet created! Keep your PIN safe.';
-        document.getElementById('setPinButton').style.display = 'block';
-      } else if (data.status === 'cancelled') {
-        document.getElementById('walletStatus').innerText = 'Payment cancelled.';
-      }
-    });
   </script>
 </body>
 </html>
