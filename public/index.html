@@ -14,36 +14,48 @@
   <script>
     async function createWallet() {
       const pin = document.getElementById('pin').value;
+      console.log('PIN entered:', pin); // Debug
       if (!pin || pin.length !== 6 || isNaN(pin)) {
         alert('Please enter a valid 6-digit PIN');
+        console.log('PIN validation failed');
         return;
       }
+
       const user = window.Telegram.WebApp.initDataUnsafe.user;
+      if (!user || !user.id) {
+        alert('Error: Telegram user data not found');
+        console.log('User data missing:', user);
+        return;
+      }
       const userId = user.id;
-      // Encrypt a temp key with PIN (real key generated server-side)
-      const tempKey = userId + Date.now();
-      const encryptedKey = CryptoJS.AES.encrypt(tempKey, pin).toString();
+      const encryptedKey = CryptoJS.AES.encrypt(userId + Date.now(), pin).toString();
+      console.log('Sending data:', { userId, encryptedKey }); // Debug
 
-      window.Telegram.WebApp.sendData(JSON.stringify({
-        action: 'pay',
-        userId: userId,
-        encryptedKey: encryptedKey
-      }));
-
-      document.getElementById('walletStatus').innerText = 'Processing payment...';
+      try {
+        window.Telegram.WebApp.sendData(JSON.stringify({
+          action: 'pay',
+          userId: userId,
+          encryptedKey: encryptedKey
+        }));
+        console.log('Data sent to bot');
+        document.getElementById('walletStatus').innerText = 'Processing payment...';
+      } catch (error) {
+        alert('Error sending payment request: ' + error.message);
+        console.log('Send error:', error);
+      }
     }
 
     function setPin() {
       const newPin = prompt('Enter a new 6-digit PIN:');
       if (newPin && newPin.length === 6 && !isNaN(newPin)) {
         alert('PIN changed successfully! (Feature coming soon)');
-        // TODO: Update encrypted key on server with new PIN
       } else {
         alert('Please enter a valid 6-digit PIN');
       }
     }
 
     window.Telegram.WebApp.onEvent('invoiceClosed', (data) => {
+      console.log('Invoice closed:', data); // Debug
       if (data.status === 'paid') {
         document.getElementById('walletStatus').innerText = 'Wallet created! Keep your PIN safe.';
         document.getElementById('setPinButton').style.display = 'block';
