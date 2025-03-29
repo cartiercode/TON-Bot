@@ -14,7 +14,7 @@
   <script>
     async function createWallet() {
       const pin = document.getElementById('pin').value;
-      console.log('PIN entered:', pin); // Debug
+      console.log('PIN entered:', pin);
       if (!pin || pin.length !== 6 || isNaN(pin)) {
         alert('Please enter a valid 6-digit PIN');
         console.log('PIN validation failed');
@@ -29,7 +29,7 @@
       }
       const userId = user.id;
       const encryptedKey = CryptoJS.AES.encrypt(userId + Date.now(), pin).toString();
-      console.log('Sending data:', { userId, encryptedKey }); // Debug
+      console.log('Sending data:', { userId, encryptedKey });
 
       try {
         window.Telegram.WebApp.sendData(JSON.stringify({
@@ -55,7 +55,7 @@
     }
 
     window.Telegram.WebApp.onEvent('invoiceClosed', (data) => {
-      console.log('Invoice closed:', data); // Debug
+      console.log('Invoice closed:', data);
       if (data.status === 'paid') {
         document.getElementById('walletStatus').innerText = 'Wallet created! Keep your PIN safe.';
         document.getElementById('setPinButton').style.display = 'block';
